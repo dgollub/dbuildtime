@@ -42,7 +42,7 @@ struct timing_file_entry
     uint MillisecondsElapsed;
 }
 
-ulong GetClock()
+ulong GetClockInNSecs()
 {
     auto now = MonoTime.currTime;
     return ticksToNSecs(now.ticks());
@@ -165,6 +165,7 @@ struct time_part
     double MillisecondsPer;
 }
 
+// TODO(dkg): wtf is this? fix this!
 void PrintTime(double Milliseconds)
 {
     double MillisecondsPerSecond = 1000;
@@ -191,8 +192,8 @@ void PrintTime(double Milliseconds)
 
     for (PartIndex = 0; PartIndex < ((Parts).sizeof / (Parts[0]).sizeof); ++PartIndex)
     {
-        double MsPer = Parts[PartIndex].MillisecondsPer;
-        double This = cast(double)cast(int)(Q / MsPer);
+        uint MsPer = cast(uint)Parts[PartIndex].MillisecondsPer;
+        uint This = cast(uint)cast(int)(Q / MsPer);
 
         if (This > 0)
         {
@@ -248,19 +249,20 @@ void PrintStatGroup(string Title, stat_group* Group)
 
 void UpdateStatGroup(stat_group* Group, timing_file_entry* Entry)
 {
-    if (Group.SlowestMs < Entry.MillisecondsElapsed)
-    {
-        Group.SlowestMs = Entry.MillisecondsElapsed;
-    }
+    // TODO(dkg): implement this again
+    //if (Group.SlowestMs < Entry.MillisecondsElapsed)
+    //{
+    //    Group.SlowestMs = Entry.MillisecondsElapsed;
+    //}
 
-    if (Group.FastestMs > Entry.MillisecondsElapsed)
-    {
-        Group.FastestMs = Entry.MillisecondsElapsed;
-    }
+    //if (Group.FastestMs > Entry.MillisecondsElapsed)
+    //{
+    //    Group.FastestMs = Entry.MillisecondsElapsed;
+    //}
 
-    Group.TotalMs += cast(double) Entry.MillisecondsElapsed;
+    //Group.TotalMs += cast(double) Entry.MillisecondsElapsed;
 
-    ++Group.Count;
+    //++Group.Count;
 }
 
 int MapToDiscrete(double Value, double InMax, double OutMax)
@@ -462,8 +464,7 @@ int main(string[] args)
 {
     ulong argCount = args.length;
 
-    // TODO(dkg): revisit those casts - they are dangerous!!!!
-    uint entryClock = cast(uint)GetClock();
+    ulong entryClock = GetClockInNSecs();
 
     if (argCount == 3 || argCount == 4)
     {
@@ -474,41 +475,36 @@ int main(string[] args)
         bool modeIsBegin = mode.endsWith("-begin");
         bool fileExists = timingFileName.exists();
 
-        if (!modeIsBegin) {
+        if (!modeIsBegin)
+        {
             assert(fileExists, "Make sure you specify a timing file name.");
         }
 
-        // TODO(dkg): revisit the file modes - this seems wrong!
         string fileMode = "r+b";
-        if (!fileExists) {
+        if (!fileExists)
+        {
             fileMode = "w+b";
         }
 
         File timingFile = File(timingFileName, fileMode);
 
-        scope(exit) {
-            writeln("scope exit");
-            timingFile.close();
-        }
-
-        writeln("timingFile mode ", fileMode);
+        scope(exit) timingFile.close();
 
         timing_file_header header;
 
         // If the file exists check the magic value.
-        if (fileExists) {
-
-            if (timingFile.size() == 0) {
-                writeln("writing magic value to existing but empty file");
+        if (fileExists)
+        {
+            if (timingFile.size() == 0)
+            {
                 timingFile.rawWrite((&MAGIC_VALUE)[0 .. 1]);
                 header.MagicValue = MAGIC_VALUE;
-            } else {
-
-                writeln("reading magic value from existing file");
+            }
+            else
+            {
                 auto input = timingFile.rawRead(new uint[1]);
                 header.MagicValue = input[0];
 
-                writeln("header.MagicValue: ", header.MagicValue);
                 if (header.MagicValue != MAGIC_VALUE)
                 {
                     assert(false, "ERROR: Unable to verify that \"%s\" is actually a dbuildtime (or ctime) compatible file.\n".format(timingFileName));
@@ -518,89 +514,65 @@ int main(string[] args)
 
         if (modeIsBegin)
         {
-            writeln("begin");
 
             // If the file doesn't exist create it, because we're starting a new timing.
-            if (!fileExists) {
-                writeln("writing magic value to file ", timingFileName);
+            if (!fileExists)
+            {
                 timingFile.rawWrite((&MAGIC_VALUE)[0 .. 1]);
                 header.MagicValue = MAGIC_VALUE;
-                writeln("magic value written");
             }
 
             timing_file_entry newEntry;
 
+            ulong nanoSeconds = GetClockInNSecs();
+            uint milliSeconds = cast(uint)(nanoSeconds / 1_000_000);
+
             newEntry.StartDate = GetDate();
-            newEntry.MillisecondsElapsed = cast(uint)GetClock();
+            newEntry.MillisecondsElapsed = milliSeconds;
 
             long seekIndex = timingFile.size();
 
             timingFile.seek(seekIndex, SEEK_SET);
 
-            writeln("begin before write: ", newEntry);
             timingFile.rawWrite((&newEntry)[0 .. 1]);
-            writeln("begin after write");
         }
         else if (mode.endsWith("-end"))
         {
-            // TODO(dkg): detect when two "-end" writes happen to the same file without an open
-            //            "-begin" file
-            writeln("end!");
-
             assert(timingFile.size() > 0, "empty timing file - use -begin first");
 
             timing_file_entry lastEntry;
 
-            uint b = timing_file_entry.sizeof;
-            uint s = cast(uint)timingFile.size();
-            uint i = b > s ? b : s - b;
+            uint timingFileEntrySize = timing_file_entry.sizeof;
+            uint timingFileSize = cast(uint)timingFile.size();
+            uint seekIndex = timingFileEntrySize > timingFileSize ? timingFileEntrySize : timingFileSize - timingFileEntrySize;
 
-            writeln("b, s, i: ", b, " - ", s, " - ", i);
-
-            timingFile.seek(i, SEEK_SET);
-
-            writeln("after seek");
+            timingFile.seek(seekIndex, SEEK_SET);
 
             auto buffer = timingFile.rawRead((&lastEntry)[0 .. 1]);
 
-            writeln("after chunks: ", buffer, " ", buffer.length);
-
             assert(!(buffer.length == 0), "could not read last timing file entry");
 
-            writeln("after assert 1: ", lastEntry);
-            writeln("after assert 2: ", entryClock, " - ", cast(uint)entryClock);
-
-            // TODO(dkg): detect when two "-end" writes happen to the same file without an open
-            //            "-begin" file ---- these flags somehow do not work as expected
             if (!(lastEntry.Flags & TFEF_Complete))
             {
-                // TODO(dkg): double check all those cast, right now we are losing precision
-                //            because MillisecondsElapsed is uint, not ulong.
                 uint startClockD = lastEntry.MillisecondsElapsed;
-                uint endClockD = entryClock;
-
-                writeln("start/end ", startClockD, " / ", endClockD);
+                uint endClockD = cast(uint)(entryClock / 1_000_000);
 
                 lastEntry.Flags |= TFEF_Complete;
                 lastEntry.MillisecondsElapsed = 0;
 
                 if (startClockD < endClockD)
                 {
-                    ulong diffTicks = endClockD - startClockD;
-                    uint nanoSeconds = cast(uint)ticksToNSecs(diffTicks);
-                    lastEntry.MillisecondsElapsed = nanoSeconds / 1_000_000;
+                    uint diffMilliSeconds = endClockD - startClockD;
+                    lastEntry.MillisecondsElapsed = diffMilliSeconds;
                 }
-
-                writeln("lastEntry.MillisecondsElapsed ", lastEntry.MillisecondsElapsed, " - ", startClockD, " - ", endClockD);
 
                 if ((argCount == 3) || ((argCount == 4) && (to!int(args[3]) == 0)))
                 {
                     lastEntry.Flags |= TFEF_NoErrors;
                 }
 
-                // TODO(dkg): activate this again!
-                //timingFile.seek(-b, SEEK_END);
-                //timingFile.rawWrite((&lastEntry)[0 .. 1]);
+                timingFile.seek(seekIndex, SEEK_SET);
+                timingFile.rawWrite((&lastEntry)[0 .. 1]);
 
                 write("CTIME: ");
                 PrintTime(lastEntry.MillisecondsElapsed);
