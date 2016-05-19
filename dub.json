@@ -1,0 +1,13 @@
+{
+	"name": "dbuildtime",
+	"description": "Easily get timing information on your project's build times.",
+	"copyright": "Copyright © 2016, Daniel Kurashige-Gollub",
+	"authors": ["Daniel Kurashige-Gollub"],
+    "license": "public domain",
+	"dependencies": {
+	},
+    "targetType": "executable",
+    "targetPath": "build",
+    "targetName": "dbuildtime",
+    "mainSourceFile": "src/dbuildtime.d"
+}
