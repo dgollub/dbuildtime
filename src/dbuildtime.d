@@ -279,6 +279,7 @@ int MapToDiscrete(double Value, double InMax, double OutMax)
     return (Result);
 }
 
+// TODO(dkg): remove this, this is ugly
 void fputc(char s, File f) {
     f.write(s);
 }
