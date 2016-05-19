@@ -72,13 +72,13 @@ void PrintDate(timing_file_date date) {
 
 double MillisecondDifference(timing_file_date a, timing_file_date b)
 {
-    //assert(false, "Implement me first!");
+    assert(false, "Implement me first!");
     return 0;
 }
 
 uint DayIndex(timing_file_date a)
 {
-    //assert(false, "Implement me first!");
+    assert(false, "Implement me first!");
     // convert to SysTime and use .dayOfWeek or .day - not sure
     return 0;
 }
@@ -94,6 +94,7 @@ void Usage()
     stderr.write("  dbuildtime --csv <timing file>\n");
 }
 
+// TODO(dkg): refactor this
 timing_file_entry[] ReadAllEntries(File timingFile)
 {
     timing_file_entry[] result;
@@ -130,7 +131,7 @@ timing_file_entry[] ReadAllEntries(File timingFile)
     return result;
 }
 
-
+// TODO(dkg): refactor this
 void CSV(timing_file_entry[] entries, string timingFileName)
 {
     //int entryIndex;
@@ -165,7 +166,7 @@ struct time_part
     double MillisecondsPer;
 }
 
-// TODO(dkg): wtf is this? fix this!
+// TODO(dkg): refactor this
 void PrintTime(double Milliseconds)
 {
     double MillisecondsPerSecond = 1000;
@@ -229,6 +230,7 @@ struct graph
     stat_group[GRAPH_WIDTH] Buckets;
 }
 
+// TODO(dkg): refactor this
 void PrintStatGroup(string Title, stat_group* Group)
 {
     uint AverageMs = 0;
@@ -247,6 +249,7 @@ void PrintStatGroup(string Title, stat_group* Group)
     }
 }
 
+// TODO(dkg): refactor this
 void UpdateStatGroup(stat_group* Group, timing_file_entry* Entry)
 {
     // TODO(dkg): implement this again
@@ -265,6 +268,7 @@ void UpdateStatGroup(stat_group* Group, timing_file_entry* Entry)
     //++Group.Count;
 }
 
+// TODO(dkg): refactor this
 int MapToDiscrete(double Value, double InMax, double OutMax)
 {
     int Result;
@@ -284,6 +288,7 @@ void fputc(char s, File f) {
     f.write(s);
 }
 
+// TODO(dkg): refactor this
 void PrintGraph(string Title, double daySpan, graph* Graph)
 {
     int BucketIndex;
@@ -369,6 +374,7 @@ void PrintGraph(string Title, double daySpan, graph* Graph)
     writef(" 0\n");
 }
 
+// TODO(dkg): refactor this
 void Stats(timing_file_entry[] entries, string timingFileName)
 {
     stat_group withErrors;
