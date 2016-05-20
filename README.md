@@ -2,7 +2,7 @@
 
 DBuildTime provides timing information on your project's build times.
 
-Based on Casey Muratori's (CTime Utility)[https://gist.github.com/cmuratori/8c909975de4bb071056b4ec1651077e8] (the source code can be found in the (orgsrc)[orgsrc] folder).
+Based on Casey Muratori's [CTime Utility](https://gist.github.com/cmuratori/8c909975de4bb071056b4ec1651077e8) (the source code can be found in the (orgsrc)[orgsrc] folder).
 
 Casey showcases his tool on his Youtube channel here: [Overview of the CTime Utility](https://www.youtube.com/watch?v=LdMHyGxfg6U)
 
@@ -17,9 +17,9 @@ dbuildtime is not designed or written to be binary compatible with ctime output 
 
 # How To Build
 
-Make sure you have the latest (D compiler)[http://dlang.org/] installed. I use (DMD Compiler v2.071.0)[http://dlang.org/download.html].
+Make sure you have the latest [D compiler](http://dlang.org/) installed. I use [DMD Compiler v2.071.0](http://dlang.org/download.html).
 
-Use (dub)[https://code.dlang.org/getting_started] to build dbuildtime.
+Use [dub](https://code.dlang.org/getting_started) to build dbuildtime.
 
 Alternativly you can use the `build.sh` script to build dbuildtime.
 
