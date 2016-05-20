@@ -93,7 +93,6 @@ void Usage()
     stderr.write("  dbuildtime --csv <timing file>\n");
 }
 
-// TODO(dkg): refactor this
 timing_file_entry[] ReadAllEntries(File timingFile)
 {
     ulong fileSize = timingFile.size();
