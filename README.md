@@ -6,6 +6,10 @@ Based on Casey Muratori's [CTime Utility](https://gist.github.com/cmuratori/8c90
 
 Casey showcases his tool on his Youtube channel here: [Overview of the CTime Utility](https://www.youtube.com/watch?v=LdMHyGxfg6U)
 
+# Why?
+
+Because I am currently learning the [D programming language](http://dlang.org/) and I wanted to see how much effort it is to port a simple, small C utility over to it.
+
 
 # Difference to CTime
 
@@ -90,5 +94,5 @@ To do this, you can use separate timing files for each configuration by using th
 
 License: Public Domain
 
-
-Copyright (c) 2016 by Daniel Kurashige-Gollub <daniel@kurashige-gollub.de>
+Original C version Copyright (c) 2016 by Casey Muratori
+D conversion is Copyright (c) 2016 by Daniel Kurashige-Gollub <daniel@kurashige-gollub.de>
