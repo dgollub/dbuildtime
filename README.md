@@ -2,7 +2,7 @@
 
 DBuildTime provides timing information on your project's build times.
 
-Based on Casey Muratori's [CTime Utility](https://gist.github.com/cmuratori/8c909975de4bb071056b4ec1651077e8) (the source code can be found in the (orgsrc)[orgsrc] folder).
+Based on Casey Muratori's [CTime Utility](https://gist.github.com/cmuratori/8c909975de4bb071056b4ec1651077e8) (the source code can be found in the [orgsrc](orgsrc) folder).
 
 Casey showcases his tool on his Youtube channel here: [Overview of the CTime Utility](https://www.youtube.com/watch?v=LdMHyGxfg6U)
 
