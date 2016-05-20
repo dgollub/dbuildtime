@@ -16,8 +16,8 @@ import std.format;
 
 immutable int MAGIC_VALUE = 0xCA5E713F;
 
-// TODO(dkg): make sure we keep the original structs' memory aligments!
-//#pragma pack(push,1)
+// NOTE(dkg): make sure we keep the original structs' memory aligments!
+// #pragma pack(push,1)
 align(1)
 struct timing_file_header
 {
@@ -70,17 +70,16 @@ void PrintDate(timing_file_date date) {
     write(fromStringz(cast(char *)&buffer));
 }
 
-double MillisecondDifference(timing_file_date a, timing_file_date b)
+ulong SecondDifference(timing_file_date a, timing_file_date b)
 {
-    assert(false, "Implement me first!");
-    return 0;
+    ulong diff = a.E - b.E;
+    return diff;
 }
 
 uint DayIndex(timing_file_date a)
 {
-    assert(false, "Implement me first!");
-    // convert to SysTime and use .dayOfWeek or .day - not sure
-    return 0;
+    auto ts = SysTime.fromUnixTime(a.E).toTM();
+    return ts.tm_yday;
 }
 
 void Usage()
@@ -97,284 +96,271 @@ void Usage()
 // TODO(dkg): refactor this
 timing_file_entry[] ReadAllEntries(File timingFile)
 {
-    timing_file_entry[] result;
+    ulong fileSize = timingFile.size();
+    ulong entriesBegin = timing_file_header.sizeof;
+    ulong entrySize = timing_file_entry.sizeof;
+    ulong entriesSize = fileSize - entriesBegin;
 
-    //long EntriesBegin = timing_file_header.sizeof;
-    //long FileSize = fseek(Handle, 0, SEEK_END);
-    //if (FileSize > 0)
-    //{
-    //    long EntriesSize = FileSize - EntriesBegin;
-    //    Result.Entries = cast(timing_file_entry * ) malloc(EntriesSize);
-    //    if (Result.Entries)
-    //    {
-    //        long TestPos = fseek(Handle, cast(long)EntriesBegin, SEEK_SET);
-    //        long ReadSize = fread(cast(_IO_FILE)Handle, Result.Entries, EntriesSize);
-    //        if (ReadSize == EntriesSize)
-    //        {
-    //            Result.EntryCount = EntriesSize / sizeof(timing_file_entry);
-    //        }
-    //        else
-    //        {
-    //            stderr.writef("ERROR: Unable to read timing entries from file.\n");
-    //        }
-    //    }
-    //    else
-    //    {
-    //        stderr.writef("ERROR: Unable to allocate %d for storing timing entries.\n", EntriesSize);
-    //    }
-    //}
-    //else
-    //{
-    //    stderr.writef("ERROR: Unable to determine file size of timing file.\n");
-    //}
+    ulong numberOfEntries = entriesSize / entrySize;
 
-    return result;
+    if (fileSize > 0)
+    {
+        timing_file_entry[] buffer;
+        buffer.length = numberOfEntries;
+
+        timingFile.seek(entriesBegin, SEEK_SET);
+        auto result = timingFile.rawRead(buffer);
+
+        if (result.length != numberOfEntries)
+        {
+            stderr.writef("ERROR: Unable to read timing entries from file.\n");
+            return [];
+        }
+
+        return result;
+    }
+    else
+    {
+        stderr.writef("ERROR: Unable to determine file size of timing file.\n");
+    }
+
+    return [];
 }
 
-// TODO(dkg): refactor this
 void CSV(timing_file_entry[] entries, string timingFileName)
 {
-    //int entryIndex;
-    //timing_file_entry* Entry = Array.Entries;
+    writef("%s Timings\n", timingFileName);
+    write("ordinal, date, duration, status\n");
+    {
+        foreach (entryIndex, entry; entries)
+        {
+            writef("%d, ", entryIndex);
+            PrintDate(entry.StartDate);
+            if (entry.Flags & TFEF_Complete)
+            {
+                writef(", %0.3fs, %s",
+                    cast(double)entry.MillisecondsElapsed / 1000.0,
+                    (entry.Flags & TFEF_NoErrors) ? "succeeded" : "failed");
+            }
+            else
+            {
+                write(", (never completed), failed");
+            }
 
-    //writef("%s Timings\n", timingFileName);
-    //writef("ordinal, date, duration, status\n");
-    //{
-    //    for (entryIndex = 0; entryIndex < Array.EntryCount; ++entryIndex, ++Entry)
-    //    {
-    //        writef("%d, ", entryIndex);
-    //        PrintDate(Entry.StartDate);
-    //        if (Entry.Flags & TFEF_Complete)
-    //        {
-    //            writef(", %0.3fs, %s",
-    //                cast(double) Entry.MillisecondsElapsed / 1000.0,
-    //                (Entry.Flags & TFEF_noErrors) ? "succeeded" : "failed");
-    //        }
-    //        else
-    //        {
-    //            writef(", (never completed), failed");
-    //        }
-
-    //        writef("\n");
-    //    }
-    //}
+            write("\n");
+        }
+    }
 }
 
 struct time_part
 {
     string Name;
-    double MillisecondsPer;
+    double MilliSecondsPer;
 }
 
-// TODO(dkg): refactor this
-void PrintTime(double Milliseconds)
+void PrintTime(double milliSeconds)
 {
-    double MillisecondsPerSecond = 1000;
-    double MillisecondsPerMinute = 60 * MillisecondsPerSecond;
-    double MillisecondsPerHour = 60 * MillisecondsPerMinute;
-    double MillisecondsPerDay = 24 * MillisecondsPerHour;
-    double MillisecondsPerWeek = 7 * MillisecondsPerDay;
-    time_part[] Parts = [
+    double milliSecondsPerSecond = 1000;
+    double milliSecondsPerMinute = 60 * milliSecondsPerSecond;
+    double milliSecondsPerHour = 60 * milliSecondsPerMinute;
+    double milliSecondsPerDay = 24 * milliSecondsPerHour;
+    double milliSecondsPerWeek = 7 * milliSecondsPerDay;
+
+    time_part[] parts = [
         {
-            "week", MillisecondsPerWeek
+            "week", milliSecondsPerWeek
         },
         {
-            "day", MillisecondsPerDay
+            "day", milliSecondsPerDay
         },
         {
-            "hour", MillisecondsPerHour
+            "hour", milliSecondsPerHour
         },
         {
-            "minute", MillisecondsPerMinute
+            "minute", milliSecondsPerMinute
         },
     ];
-    uint PartIndex;
-    double Q = Milliseconds;
 
-    for (PartIndex = 0; PartIndex < ((Parts).sizeof / (Parts[0]).sizeof); ++PartIndex)
+    double q = milliSeconds;
+
+    foreach (part; parts)
     {
-        uint MsPer = cast(uint)Parts[PartIndex].MillisecondsPer;
-        uint This = cast(uint)cast(int)(Q / MsPer);
+        uint msPer = cast(uint)part.MilliSecondsPer;
+        uint value = cast(uint)(q / msPer);
 
-        if (This > 0)
+        if (value > 0)
         {
-            writef("%d %s%s, ", cast(int) This, Parts[PartIndex].Name, (This != 1) ? "s" : "");
+            writef("%d %s%s, ", value, part.Name, (value != 1) ? "s" : "");
         }
-        Q -= This * MsPer;
+        q -= value * msPer;
     }
 
-    writef("%0.3f seconds", cast(double) Q / 1000.0);
+    // TODO(dkg): nicer output for minute/hour/day long times
+    writef("%0.3f seconds", cast(double) q / 1000.0);
 }
 
-void PrintTimeStat(string Name, double Milliseconds)
+void PrintTimeStat(string name, double milliSeconds)
 {
-    writef("%s: ", Name);
-    PrintTime(Milliseconds);
+    writef("%s: ", name);
+    PrintTime(milliSeconds);
     write("\n");
 }
 
 struct stat_group
 {
-    uint Count;
+    uint Count = 0;
 
-    uint SlowestMs;
-    uint FastestMs;
-    double TotalMs;
+    uint SlowestMs = 0;
+    uint FastestMs = 0;
+    double TotalMs = 0;
 }
 
 immutable int GRAPH_HEIGHT = 10;
 immutable int GRAPH_WIDTH = 30;
 
-struct graph
+struct stat_graph
 {
     stat_group[GRAPH_WIDTH] Buckets;
 }
 
-// TODO(dkg): refactor this
-void PrintStatGroup(string Title, stat_group* Group)
+void PrintStatGroup(string title, stat_group group)
 {
-    uint AverageMs = 0;
-    if (Group.Count >= 1)
+    uint averageMs = 0;
+    if (group.Count >= 1)
     {
-        AverageMs = cast(uint)(Group.TotalMs / cast(double) Group.Count);
+        averageMs = cast(uint)(group.TotalMs / cast(double) group.Count);
     }
 
-    if (Group.Count > 0)
+    if (group.Count > 0)
     {
-        writef("%s (%d):\n", Title, Group.Count);
-        PrintTimeStat("  Slowest", Group.SlowestMs);
-        PrintTimeStat("  Fastest", Group.FastestMs);
-        PrintTimeStat("  Average", AverageMs);
-        PrintTimeStat("  Total", Group.TotalMs);
+        writef("%s (%d):\n", title, group.Count);
+        PrintTimeStat("  Slowest", group.SlowestMs);
+        PrintTimeStat("  Fastest", group.FastestMs);
+        PrintTimeStat("  Average", averageMs);
+        PrintTimeStat("  Total", group.TotalMs);
     }
 }
 
-// TODO(dkg): refactor this
-void UpdateStatGroup(stat_group* Group, timing_file_entry* Entry)
+void UpdateStatGroup(stat_group* group, timing_file_entry* entry)
 {
-    // TODO(dkg): implement this again
-    //if (Group.SlowestMs < Entry.MillisecondsElapsed)
-    //{
-    //    Group.SlowestMs = Entry.MillisecondsElapsed;
-    //}
-
-    //if (Group.FastestMs > Entry.MillisecondsElapsed)
-    //{
-    //    Group.FastestMs = Entry.MillisecondsElapsed;
-    //}
-
-    //Group.TotalMs += cast(double) Entry.MillisecondsElapsed;
-
-    //++Group.Count;
-}
-
-// TODO(dkg): refactor this
-int MapToDiscrete(double Value, double InMax, double OutMax)
-{
-    int Result;
-
-    if (InMax == 0)
+    if (group.SlowestMs < entry.MillisecondsElapsed)
     {
-        InMax = 1;
+        group.SlowestMs = entry.MillisecondsElapsed;
     }
 
-    Result = cast(int)((Value / InMax) * OutMax);
+    if (group.FastestMs > entry.MillisecondsElapsed)
+    {
+        group.FastestMs = entry.MillisecondsElapsed;
+    }
 
-    return (Result);
+    group.TotalMs += cast(double)entry.MillisecondsElapsed;
+
+    ++group.Count;
 }
 
-// TODO(dkg): remove this, this is ugly
-void fputc(char s, File f) {
-    f.write(s);
-}
-
-// TODO(dkg): refactor this
-void PrintGraph(string Title, double daySpan, graph* Graph)
+int MapToDiscrete(double value, double inMax, double outMax)
 {
-    int BucketIndex;
-    int LineIndex;
-    int MaxCountInBucket = 0;
-    uint SlowestMs = 0;
+    if (inMax == 0)
+    {
+        inMax = 1;
+    }
+
+    return cast(int)((value / inMax) * outMax);
+}
+
+void PrintGraph(string title, double daySpan, stat_graph graph)
+{
+    int bucketIndex;
+    int lineIndex;
+    int maxCountInBucket = 0;
+    uint slowestMs = 0;
     double DPB = daySpan / cast(double) GRAPH_WIDTH;
 
-    for (BucketIndex = 0; BucketIndex < GRAPH_WIDTH; ++BucketIndex)
+    for (bucketIndex = 0; bucketIndex < GRAPH_WIDTH; ++bucketIndex)
     {
-        stat_group* Group = &(Graph.Buckets[BucketIndex]);
+        stat_group group = graph.Buckets[bucketIndex];
 
-        if (Group.Count)
+        if (group.Count)
         {
-            //            double AverageMs = Group->TotalMs / (double)Group->Count;
-            if (MaxCountInBucket < Group.Count)
+            if (maxCountInBucket < group.Count)
             {
-                MaxCountInBucket = Group.Count;
+                maxCountInBucket = group.Count;
             }
 
-            if (SlowestMs < Group.SlowestMs)
+            if (slowestMs < group.SlowestMs)
             {
-                SlowestMs = Group.SlowestMs;
+                slowestMs = group.SlowestMs;
             }
         }
     }
 
-    writef("\n%s (%f day%s/bucket):\n", Title, DPB, (DPB == 1) ? "" : "s");
-    for (LineIndex = GRAPH_HEIGHT - 1; LineIndex >= 0; --LineIndex)
+    writef("\n%s (%f day%s/bucket):\n", title, DPB, (DPB == 1) ? "" : "s");
+
+    for (lineIndex = GRAPH_HEIGHT - 1; lineIndex >= 0; --lineIndex)
     {
-        fputc('|', stdout);
-        for (BucketIndex = 0; BucketIndex < GRAPH_WIDTH; ++BucketIndex)
+        write('|');
+        for (bucketIndex = 0; bucketIndex < GRAPH_WIDTH; ++bucketIndex)
         {
-            stat_group* Group = &(Graph.Buckets[BucketIndex]);
-            int This = -1;
-            if (Group.Count)
+            stat_group group = graph.Buckets[bucketIndex];
+            int v = -1;
+            if (group.Count)
             {
-                //                double AverageMs = Group->TotalMs / (double)Group->Count;
-                This = MapToDiscrete(Group.SlowestMs, SlowestMs, GRAPH_HEIGHT - 1);
+                v = MapToDiscrete(group.SlowestMs, slowestMs, GRAPH_HEIGHT - 1);
             }
-            fputc((This >= LineIndex) ? '*' : ' ', stdout);
+            write((v >= lineIndex) ? '*' : ' ');
         }
-        if (LineIndex == (GRAPH_HEIGHT - 1))
+        if (lineIndex == (GRAPH_HEIGHT - 1))
         {
-            fputc(' ', stdout);
-            PrintTime(SlowestMs);
+            write(' ');
+            PrintTime(slowestMs);
         }
-        fputc('\n', stdout);
+        write('\n');
     }
-    fputc('+', stdout);
-    for (BucketIndex = 0; BucketIndex < GRAPH_WIDTH; ++BucketIndex)
+
+    write('+');
+
+    for (bucketIndex = 0; bucketIndex < GRAPH_WIDTH; ++bucketIndex)
     {
-        fputc('-', stdout);
+        write('-');
     }
-    fputc(' ', stdout);
+
+    write(' ');
+
     PrintTime(0);
-    fputc('\n', stdout);
-    fputc('\n', stdout);
-    for (LineIndex = GRAPH_HEIGHT - 1; LineIndex >= 0; --LineIndex)
+
+    write('\n');
+    write('\n');
+
+    for (lineIndex = GRAPH_HEIGHT - 1; lineIndex >= 0; --lineIndex)
     {
-        fputc('|', stdout);
-        for (BucketIndex = 0; BucketIndex < GRAPH_WIDTH; ++BucketIndex)
+        write('|');
+        for (bucketIndex = 0; bucketIndex < GRAPH_WIDTH; ++bucketIndex)
         {
-            stat_group* Group = &(Graph.Buckets[BucketIndex]);
-            int This = -1;
-            if (Group.Count)
+            stat_group group = graph.Buckets[bucketIndex];
+            int v = -1;
+            if (group.Count)
             {
-                This = MapToDiscrete(Group.Count, MaxCountInBucket, GRAPH_HEIGHT - 1);
+                v = MapToDiscrete(group.Count, maxCountInBucket, GRAPH_HEIGHT - 1);
             }
-            fputc((This >= LineIndex) ? '*' : ' ', stdout);
+            write((v >= lineIndex) ? '*' : ' ');
         }
-        if (LineIndex == (GRAPH_HEIGHT - 1))
+        if (lineIndex == (GRAPH_HEIGHT - 1))
         {
-            writef(" %d", MaxCountInBucket);
+            writef(" %d", maxCountInBucket);
         }
-        fputc('\n', stdout);
+        write('\n');
     }
-    fputc('+', stdout);
-    for (BucketIndex = 0; BucketIndex < GRAPH_WIDTH; ++BucketIndex)
+
+    write('+');
+
+    for (bucketIndex = 0; bucketIndex < GRAPH_WIDTH; ++bucketIndex)
     {
-        fputc('-', stdout);
+        write('-');
     }
-    writef(" 0\n");
+
+    write(" 0\n");
 }
 
-// TODO(dkg): refactor this
 void Stats(timing_file_entry[] entries, string timingFileName)
 {
     stat_group withErrors;
@@ -395,16 +381,16 @@ void Stats(timing_file_entry[] entries, string timingFileName)
     double lastDayAt = 0;
     double daySpan = 0;
 
-    graph totalGraph;
-    graph recentGraph;
+    stat_graph totalGraph;
+    stat_graph recentGraph;
 
     withErrors.FastestMs = 0xFFFFFFFF;
     noErrors.FastestMs = 0xFFFFFFFF;
 
     if (entries.length >= 2)
     {
-        double milliD = MillisecondDifference(entries[$-1].StartDate, entries[0].StartDate);
-        daySpanCount = cast(uint)(milliD / (1000.0 * 60.0 * 60.0 * 24.0));
+        double secondsDiff = SecondDifference(entries[$-1].StartDate, entries[0].StartDate);
+        daySpanCount = cast(uint)(secondsDiff / (60 * 60 * 24));
 
         firstDayAt = cast(double) DayIndex(entries[0].StartDate);
         lastDayAt = cast(double) DayIndex(entries[$-1].StartDate);
@@ -412,33 +398,31 @@ void Stats(timing_file_entry[] entries, string timingFileName)
     }
     daySpan += 1;
 
-    // TODO(dkg): use a nicer loop syntax!
-    for (int entryIndex = 0; entryIndex < entries.length; ++entryIndex)
+    foreach (entry; entries)
     {
-        auto entry = entries[entryIndex];
         if (entry.Flags & TFEF_Complete)
         {
-            stat_group* Group = (entry.Flags & TFEF_NoErrors) ?  &noErrors : &withErrors;
+            stat_group* group = (entry.Flags & TFEF_NoErrors) ? &noErrors : &withErrors;
 
-            uint ThisDayIndex = DayIndex(entry.StartDate);
-            if (lastDayIndex != ThisDayIndex)
+            uint thisDayIndex = DayIndex(entry.StartDate);
+            if (lastDayIndex != thisDayIndex)
             {
-                lastDayIndex = ThisDayIndex;
+                lastDayIndex = thisDayIndex;
                 ++daysWithTimingCount;
             }
 
-            UpdateStatGroup(Group, &entry);
+            UpdateStatGroup(group, &entry);
             UpdateStatGroup(&allStats, &entry);
 
             allMs += cast(double)entry.MillisecondsElapsed;
 
             {
-                int graphIndex = cast(int)((cast(double)(ThisDayIndex - firstDayAt) / daySpan) * cast(double) GRAPH_WIDTH);
+                int graphIndex = cast(int)((cast(double)(thisDayIndex - firstDayAt) / daySpan) * cast(double) GRAPH_WIDTH);
                 UpdateStatGroup(&(totalGraph.Buckets[graphIndex]), &entry);
             }
 
             {
-                int graphIndex = cast(int)(ThisDayIndex - (lastDayAt - GRAPH_WIDTH + 1));
+                int graphIndex = cast(int)(thisDayIndex - (lastDayAt - GRAPH_WIDTH + 1));
                 if (graphIndex >= 0)
                 {
                     UpdateStatGroup(&(recentGraph.Buckets[graphIndex]), &entry);
@@ -456,14 +440,17 @@ void Stats(timing_file_entry[] entries, string timingFileName)
     writef("Total incomplete timings: %d\n", incompleteCount);
     writef("Days with timings: %d\n", daysWithTimingCount);
     writef("Days between first and last timing: %d\n", daySpanCount);
-    PrintStatGroup("Timings marked successful",  & noErrors);
-    PrintStatGroup("Timings marked failed",  & withErrors);
 
-    PrintGraph("All", (lastDayAt - firstDayAt),  & totalGraph);
-    PrintGraph("Recent", GRAPH_WIDTH,  & recentGraph);
+    PrintStatGroup("Timings marked successful", noErrors);
+    PrintStatGroup("Timings marked failed", withErrors);
+
+    PrintGraph("All", (lastDayAt - firstDayAt), totalGraph);
+    PrintGraph("Recent", GRAPH_WIDTH, recentGraph);
 
     writef("\nTotal time spent: ");
+
     PrintTime(allMs);
+
     writef("\n");
 }
 
@@ -521,7 +508,6 @@ int main(string[] args)
 
         if (modeIsBegin)
         {
-
             // If the file doesn't exist create it, because we're starting a new timing.
             if (!fileExists)
             {
@@ -606,6 +592,7 @@ int main(string[] args)
         else
         {
             stderr.writef("ERROR: Unrecognized command \"%s\".\n", mode);
+            return -3;
         }
 
         return 0;

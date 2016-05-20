@@ -15,6 +15,15 @@ dbuildtime is cross-platform (can be build on Mac OSX, Windows and Linux) out of
 dbuildtime is not designed or written to be binary compatible with ctime output files. It may work, it may not work.
 
 
+# How To Build
+
+Make sure you have the latest (D compiler)[http://dlang.org/] installed. I use (DMD Compiler v2.071.0)[http://dlang.org/download.html].
+
+Use (dub)[https://code.dlang.org/getting_started] to build dbuildtime.
+
+Alternativly you can use the `build.sh` script to build dbuildtime.
+
+
 # Usage
 
 dbuildtime is a simple utility that helps you keep track of how much time you spend building your projects.
@@ -56,6 +65,7 @@ If you would like it to do so, you can capture the error status in your build sc
 and then when you eventually call dbuildtime to end the profiling, you simply pass that error code to it:
 
 ```bash
+   REM Windows BATCH file
    dbuildtime -end timings_file_for_this_build.ctm %LastError%
 ```
 
