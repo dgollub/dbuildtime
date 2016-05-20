@@ -105,7 +105,7 @@ timing_file_entry[] ReadAllEntries(File timingFile)
     if (fileSize > 0)
     {
         timing_file_entry[] buffer;
-        buffer.length = numberOfEntries;
+        buffer.length = cast(uint) numberOfEntries;
 
         timingFile.seek(entriesBegin, SEEK_SET);
         auto result = timingFile.rawRead(buffer);
