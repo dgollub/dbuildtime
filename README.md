@@ -13,7 +13,7 @@ Because I am currently learning the [D programming language](http://dlang.org/) 
 
 # Difference to CTime
 
-dbuildtime is cross-platform (can be build on Mac OSX, Windows and Linux) out of the box thanks to the [D programming language](dlang.org).
+dbuildtime is cross-platform (can be build on Mac OSX, Windows and Linux) out of the box thanks to the [D programming language](http://dlang.org).
 
 **Important**
 dbuildtime is not designed or written to be binary compatible with ctime output files. It may work, it may not work.
