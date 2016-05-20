@@ -386,7 +386,7 @@ void Stats(timing_file_entry[] entries, string timingFileName)
     withErrors.FastestMs = 0xFFFFFFFF;
     noErrors.FastestMs = 0xFFFFFFFF;
 
-    if (entries.length >= 2)
+    if (entries.length >= 1)
     {
         double secondsDiff = SecondDifference(entries[$-1].StartDate, entries[0].StartDate);
         daySpanCount = cast(uint)(secondsDiff / (60 * 60 * 24));
