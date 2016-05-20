@@ -95,4 +95,5 @@ To do this, you can use separate timing files for each configuration by using th
 License: Public Domain
 
 Original C version Copyright (c) 2016 by Casey Muratori
+
 D conversion is Copyright (c) 2016 by Daniel Kurashige-Gollub <daniel@kurashige-gollub.de>
